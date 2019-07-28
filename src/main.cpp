@@ -1,9 +1,9 @@
-#include "shader.h"
+#include "utils/shader.h"
 
 #include <GLUT/glut.h>
 #include <GLFW/glfw3.h>
 
-#include "stb_image.h"
+#include "utils/stb_image.h"
 
 #include <iostream>
 #include <cmath>
@@ -137,14 +137,31 @@ int main()
     glUniform1i(glGetUniformLocation(ourShader.ID, "texture1"), 0); // set it manually
     ourShader.setInt("texture2", 1); // or with shader class
 
+    // DeltaTime variables
+    GLfloat deltaTime = 0.0f;
+    GLfloat lastFrame = 0.0f;
+
+    // Game logic parameters
+    float objectVelocityX  = 1.0f;           // X Velocity of the object (contains direction as the sign)
+    float objectVelocityY  = 0.5f;           // Y Velocity of the object (contains direction as the sign)
+    float initialPositionX = 0.0f;             // X Initial position of the object
+    float initialPositionY = 0.0f;             // Y Initial position of the object
+    float objectPositionX  = initialPositionX;  // Initialize object X position to initial X position
+    float objectPositionY  = initialPositionY;  // Initialize object Y position to initial Y position
+
     // Render loop
     while(!glfwWindowShouldClose(window)){
+
+      // Calculate delta time
+      GLfloat currentFrame = glfwGetTime();
+      deltaTime = currentFrame - lastFrame;
+      lastFrame = currentFrame;
 
       // Input
       processInput(window);
 
-      // Rendering
-      glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+      // Rendering the background 
+      glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
 
       // bind texture
@@ -153,25 +170,27 @@ int main()
       glActiveTexture(GL_TEXTURE1);
       glBindTexture(GL_TEXTURE_2D, texture2);
 
-      // Rotating over time
+      // Check if the object is at the left/right boundary. If yes reverse direction.
+      if(abs(objectPositionX) >= 1.0f){
+        objectVelocityX = -1.0f * objectVelocityX;
+      }
+      // Check if the object is at the top/bottom boundary. If yes reverse direction.
+      if(abs(objectPositionY) >= 1.0f){
+        objectVelocityY = -1.0f * objectVelocityY;
+      }
+
+      // Increment object position and translate
+      objectPositionX = objectPositionX + objectVelocityX * deltaTime;
+      objectPositionY = objectPositionY + objectVelocityY * deltaTime;
       glm::mat4 trans = glm::mat4(1.0f);
-      trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));                          
-      trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+      trans = glm::translate(trans, glm::vec3(objectPositionX, objectPositionY, 0.0f));
+      trans = glm::scale(trans, glm::vec3(0.1f, 0.1f, 0.0f));    
+
+      // Apply the translation vec to the shader's uniform                     
       unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "transform");
       glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
       // Render first container (rotating)
-      ourShader.use();
-      glBindVertexArray(VAO);
-      glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-      // Scaling over time
-      trans = glm::mat4(1.0f);       
-      trans = glm::translate(trans, glm::vec3(-0.5f, 0.5f, 0.0f));                          
-      trans = glm::scale(trans, glm::vec3(sin((float)glfwGetTime()) / 2.0f + 0.5f, sin((float)glfwGetTime()) / 2.0f + 0.5f, 1.0f));
-      glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-
-      // Render second container (scaling)
       ourShader.use();
       glBindVertexArray(VAO);
       glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
