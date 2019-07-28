@@ -20,6 +20,8 @@ const unsigned int SCR_HEIGHT = 600;
 // Declare functions
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
+float processPlayer1Input(GLFWwindow *window);
+float processPlayer2Input(GLFWwindow *window);
 
 int main()
 {
@@ -149,6 +151,14 @@ int main()
     float objectPositionX  = initialPositionX;  // Initialize object X position to initial X position
     float objectPositionY  = initialPositionY;  // Initialize object Y position to initial Y position
 
+    // Paddles
+    float player1Velocity = 0.0f;
+    float player2Velocity = 0.0f;
+    float player1Initialpos = 0.0f;
+    float player2Initialpos = 0.0f;
+    float player1Position = player1Initialpos;
+    float player2Position = player1Initialpos;
+
     // Render loop
     while(!glfwWindowShouldClose(window)){
 
@@ -190,7 +200,37 @@ int main()
       unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "transform");
       glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
-      // Render first container (rotating)
+      // Render the ball
+      ourShader.use();
+      glBindVertexArray(VAO);
+      glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+      // Left Paddle position
+      player1Velocity = processPlayer1Input(window);
+      player1Position = player1Position + player1Velocity * deltaTime;
+      trans = glm::mat4(1.0f);
+      trans = glm::translate(trans, glm::vec3(-0.95f, player1Position, 0.0f));
+      trans = glm::scale(trans, glm::vec3(0.05f, 0.5f, 0.0f));    
+
+      // Apply the translation vec to the shader's uniform                     
+      glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+
+      // Render the paddle
+      ourShader.use();
+      glBindVertexArray(VAO);
+      glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+      // Right Paddle position
+      player2Velocity = processPlayer2Input(window);
+      player2Position = player2Position + player2Velocity * deltaTime;
+      trans = glm::mat4(1.0f);
+      trans = glm::translate(trans, glm::vec3(0.95f, player2Position, 0.0f));
+      trans = glm::scale(trans, glm::vec3(0.05f, 0.5f, 0.0f));    
+
+      // Apply the translation vec to the shader's uniform                     
+      glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+
+      // Render the paddle
       ourShader.use();
       glBindVertexArray(VAO);
       glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -221,4 +261,24 @@ void processInput(GLFWwindow *window)
 {
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+}
+
+// Process Inputs player
+float processPlayer1Input(GLFWwindow *window){
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        return 2.0f;
+    else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        return -2.0f;
+    else
+        return 0.0f;
+}
+
+// Process Inputs player
+float processPlayer2Input(GLFWwindow *window){
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        return 2.0f;
+    else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        return -2.0f;
+    else
+        return 0.0f;
 }
